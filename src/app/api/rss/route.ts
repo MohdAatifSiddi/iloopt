@@ -80,7 +80,6 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 async function summarizeContent(content: string, length: number = 200): Promise<string> {
   const maxRetries = 3;
-  let lastError: Error | null = null;
   const timeout = 30000; // 30 seconds timeout
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -125,20 +124,13 @@ async function summarizeContent(content: string, length: number = 200): Promise<
       return data.choices[0].message.content;
     } catch (error) {
       console.error(`Error summarizing content (attempt ${attempt}):`, error);
-      lastError = error as Error;
-      
-      // If this is not the last attempt, wait before retrying
-      if (attempt < maxRetries) {
-        const delay = 1000 * Math.pow(2, attempt - 1); // Exponential backoff: 1s, 2s, 4s
-        console.log(`Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+      if (attempt === maxRetries) {
+        throw error;
       }
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
-
-  // If all retries failed, return a fallback summary
-  console.error('All summarization attempts failed, returning fallback summary');
-  return content.substring(0, length) + '...';
+  throw new Error('Max retries reached');
 }
 
 async function searchRelatedNews(query: string): Promise<{ content: string[]; sources: string[] }> {
@@ -166,7 +158,6 @@ async function searchRelatedNews(query: string): Promise<{ content: string[]; so
 
 async function factCheckContent(title: string, content: string): Promise<string> {
   const maxRetries = 3;
-  let lastError: Error | null = null;
   const timeout = 30000; // 30 seconds timeout
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -211,20 +202,13 @@ async function factCheckContent(title: string, content: string): Promise<string>
       return data.choices[0].message.content;
     } catch (error) {
       console.error(`Error fact-checking content (attempt ${attempt}):`, error);
-      lastError = error as Error;
-      
-      // If this is not the last attempt, wait before retrying
-      if (attempt < maxRetries) {
-        const delay = 1000 * Math.pow(2, attempt - 1); // Exponential backoff: 1s, 2s, 4s
-        console.log(`Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+      if (attempt === maxRetries) {
+        throw error;
       }
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
-
-  // If all retries failed, return a fallback message
-  console.error('All fact-checking attempts failed, returning fallback message');
-  return "Unable to perform fact-check at this time. Please try again later.";
+  throw new Error('Max retries reached');
 }
 
 function extractImageFromContent(content: string | undefined): string | undefined {

@@ -26,14 +26,12 @@ interface FactCheckResponse {
 }
 
 export default function RSSFeed() {
-  const [news, setNews] = useState<FeedItem[]>([]);
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ErrorResponse | null>(null);
-  const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null);
   const [factCheck, setFactCheck] = useState<string | null>(null);
-  const [isFactChecking, setIsFactChecking] = useState(false);
-  const [searchingRelatedNews, setSearchingRelatedNews] = useState(false);
   const [sources, setSources] = useState<string[]>([]);
+  const [isLoadingFactCheck, setIsLoadingFactCheck] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -52,7 +50,7 @@ export default function RSSFeed() {
       }
       
       const data = await response.json();
-      setNews(data);
+      setFeedItems(data);
     } catch (err) {
       setError({
         error: 'Failed to fetch news feed',
@@ -64,15 +62,12 @@ export default function RSSFeed() {
   };
 
   const handleNewsClick = (item: FeedItem) => {
-    setSelectedItem(item);
-    setFactCheck(null);
     router.push(`/news/${item.id}`);
   };
 
   const handleFactCheck = async (item: FeedItem) => {
     try {
-      setIsFactChecking(true);
-      setSearchingRelatedNews(true);
+      setIsLoadingFactCheck(true);
       setError(null);
       setSources([]);
       
@@ -103,8 +98,7 @@ export default function RSSFeed() {
         details: err instanceof Error ? err.message : 'Unknown error occurred'
       });
     } finally {
-      setIsFactChecking(false);
-      setSearchingRelatedNews(false);
+      setIsLoadingFactCheck(false);
     }
   };
 
@@ -139,7 +133,7 @@ export default function RSSFeed() {
   return (
     <div className="min-h-screen p-4 bg-gradient-to-br from-blue-900 via-black to-green-900">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {news.map((item) => (
+        {feedItems.map((item) => (
           <div
             key={item.id}
             className="bg-white/10 backdrop-blur-sm rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border border-white/20 hover:border-blue-400/50"
@@ -180,26 +174,15 @@ export default function RSSFeed() {
                     handleFactCheck(item);
                   }}
                   className="bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white text-sm font-medium px-3 py-1 rounded transition-all duration-300"
-                  disabled={isFactChecking}
+                  disabled={isLoadingFactCheck}
                 >
-                  {isFactChecking ? 'Checking...' : 'Fact Check'}
+                  {isLoadingFactCheck ? 'Checking...' : 'Fact Check'}
                 </button>
               </div>
             </div>
           </div>
         ))}
       </div>
-
-      {searchingRelatedNews && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-gradient-to-r from-blue-900/90 to-green-900/90 rounded-lg shadow-xl p-6 border border-white/20">
-            <div className="flex items-center gap-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-400"></div>
-              <p className="text-lg font-medium text-white">Searching for related news and facts...</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {factCheck && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">

@@ -2,22 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { NewsItem } from '@/app/types';
 
-export default function NewsDetail() {
-  const { id } = useParams();
-  const router = useRouter();
+export default function NewsDetail({ params }: { params: { id: string } }) {
   const [newsItem, setNewsItem] = useState<NewsItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [factCheck, setFactCheck] = useState<string | null>(null);
+  const [sources, setSources] = useState<string[]>([]);
+  const [isLoadingFactCheck, setIsLoadingFactCheck] = useState(false);
+  const router = useRouter();
   const [summaryLength, setSummaryLength] = useState<number>(200);
   const [customSummary, setCustomSummary] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
 
   useEffect(() => {
     const fetchNewsItem = async () => {
-      if (!id) {
+      if (!params.id) {
         setError('News item ID is required');
         setLoading(false);
         return;
@@ -32,7 +34,7 @@ export default function NewsDetail() {
         const newsData = await newsResponse.json();
 
         // Decode the ID from the URL
-        const decodedId = decodeURIComponent(id as string);
+        const decodedId = decodeURIComponent(params.id as string);
         console.log('Fetching news item with ID:', decodedId);
 
         // Then fetch the specific news item
@@ -66,7 +68,7 @@ export default function NewsDetail() {
     };
 
     fetchNewsItem();
-  }, [id]);
+  }, [params.id]);
 
   const handleFactCheck = async () => {
     if (!newsItem?.id) {
@@ -219,8 +221,8 @@ export default function NewsDetail() {
               <div className="mt-6 prose prose-lg max-w-none">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">Full Article</h2>
                 <div className="text-gray-900 space-y-4">
-                  {newsItem.content.split('\n').map((paragraph, index) => (
-                    <p key={index} className="text-gray-900 leading-relaxed">
+                  {newsItem.content?.split('\n').map((paragraph: string, index: number) => (
+                    <p key={index} className="mb-4 text-gray-700">
                       {paragraph}
                     </p>
                   ))}
