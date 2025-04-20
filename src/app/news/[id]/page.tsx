@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { NewsItem } from '@/app/types';
-import { use } from 'react';
 import LLMSearchBar from '@/app/components/LLMSearchBar';
 
 interface SearchResult {
@@ -18,8 +17,6 @@ export default function NewsDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [factCheck, setFactCheck] = useState<string | null>(null);
-  const [sources, setSources] = useState<string[]>([]);
-  const [isLoadingFactCheck, setIsLoadingFactCheck] = useState(false);
   const [summaryLength, setSummaryLength] = useState<number>(200);
   const router = useRouter();
   const [customSummary, setCustomSummary] = useState<string | null>(null);

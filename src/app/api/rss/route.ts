@@ -4,7 +4,6 @@ import Parser from 'rss-parser';
 const API_KEY = "5lxZhUTNPPZGZZOOdvpwQyrjkKWwhFHjlWnw0F3htkGhAlKN2F38JQQJ99BDACHYHv6XJ3w3AAAAACOG9zzz";
 const API_URL = "https://mekot-m9pcilcz-eastus2.openai.azure.com";
 const MODEL_NAME = "o4-mini";
-const SEARXNG_URL = "http://40.90.227.173:8888";
 
 // Define custom types for RSS feed items
 type CustomFeed = {
@@ -130,34 +129,6 @@ async function summarizeContent(content: string, length: number = 200): Promise<
     }
   }
   throw new Error('Max retries reached');
-}
-
-interface SearXNGResult {
-  content: string;
-  engine: string;
-}
-
-async function searchRelatedNews(query: string): Promise<{ content: string[]; sources: string[] }> {
-  try {
-    const response = await fetch(
-      `${SEARXNG_URL}/search?q=${encodeURIComponent(query)}&format=json`
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch from SearXNG');
-    }
-
-    const data = await response.json();
-    const results = data.results || [];
-    
-    return {
-      content: results.map((result: SearXNGResult) => result.content).slice(0, 5),
-      sources: results.map((result: SearXNGResult) => result.engine).slice(0, 5)
-    };
-  } catch (error) {
-    console.error('Error searching related news:', error);
-    return { content: [], sources: [] };
-  }
 }
 
 async function factCheckContent(title: string, content: string): Promise<string> {
