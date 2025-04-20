@@ -5,6 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { NewsItem } from '@/app/types';
 import { use } from 'react';
+import LLMSearchBar from '@/app/components/LLMSearchBar';
+
+interface SearchResult {
+  title: string;
+  url: string;
+  content: string;
+}
 
 export default function NewsDetail() {
   const [newsData, setNewsData] = useState<NewsItem | null>(null);
@@ -17,6 +24,8 @@ export default function NewsDetail() {
   const router = useRouter();
   const [customSummary, setCustomSummary] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [llmResponse, setLlmResponse] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   useEffect(() => {
     const fetchNewsItem = async () => {
@@ -126,6 +135,11 @@ export default function NewsDetail() {
     }
   };
 
+  const handleLLMSearch = (response: string, results: SearchResult[]) => {
+    setLlmResponse(response);
+    setSearchResults(results);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -143,124 +157,156 @@ export default function NewsDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Back Button */}
-        <button
-          onClick={() => router.push('/')}
-          className="mb-6 flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <svg
-            className="h-5 w-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
-          Back to Home
-        </button>
+    <div className="container mx-auto px-4 py-8">
+      <LLMSearchBar onSearch={handleLLMSearch} />
+      
+      {llmResponse && (
+        <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">AI Response:</h3>
+          <p className="whitespace-pre-wrap">{llmResponse}</p>
+        </div>
+      )}
 
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        ) : newsData ? (
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <Image 
-              src={newsData.imageUrl || '/placeholder.jpg'} 
-              alt={newsData.title}
-              width={800}
-              height={400}
-              className="w-full h-auto rounded-lg"
-            />
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-gray-500">{newsData.source}</span>
-                  <span className="text-sm text-gray-400">•</span>
-                  <span className="text-sm text-gray-500">{new Date(newsData.pubDate).toLocaleDateString()}</span>
-                </div>
-                <span className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-full">
-                  {newsData.category}
-                </span>
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{newsData.title}</h1>
-              
-              {/* Full Content Section */}
-              <div className="mt-6 prose prose-lg max-w-none">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">Full Article</h2>
-                <div className="text-gray-900 space-y-4">
-                  {newsData.content?.split('\n').map((paragraph: string, index: number) => (
-                    <p key={index} className="mb-4 text-gray-700">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              </div>
-
-              {/* Summary Section */}
-              <div className="mt-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">AI Summary</h2>
-                <p className="text-gray-700 leading-relaxed">{newsData.summary}</p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mt-8 flex flex-wrap gap-4">
-                <button
-                  onClick={handleFactCheck}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+      {searchResults.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-4">Related News:</h3>
+          <div className="space-y-4">
+            {searchResults.map((result, index) => (
+              <div key={index} className="p-4 bg-white rounded-lg shadow">
+                <a 
+                  href={result.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800"
                 >
-                  Fact Check
-                </button>
-                <div className="flex items-center space-x-4">
-                  <input
-                    type="range"
-                    min="50"
-                    max="500"
-                    step="50"
-                    value={summaryLength}
-                    onChange={(e) => setSummaryLength(Number(e.target.value))}
-                    className="w-48"
-                  />
-                  <button
-                    onClick={handleCustomSummary}
-                    disabled={isSummarizing}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
-                  >
-                    {isSummarizing ? 'Generating...' : 'Generate Custom Summary'}
-                  </button>
-                </div>
+                  <h4 className="font-medium">{result.title}</h4>
+                </a>
+                <p className="mt-2 text-gray-600">{result.content}</p>
               </div>
-
-              {/* Fact Check Result */}
-              {factCheck && (
-                <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Fact Check Report</h3>
-                  <div className="text-gray-700 whitespace-pre-line">{factCheck}</div>
-                </div>
-              )}
-
-              {/* Custom Summary Result */}
-              {customSummary && (
-                <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Custom Summary</h3>
-                  <p className="text-gray-700">{customSummary}</p>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
-        ) : null}
+        </div>
+      )}
+
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          {/* Back Button */}
+          <button
+            onClick={() => router.push('/')}
+            className="mb-6 flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <svg
+              className="h-5 w-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
+            </svg>
+            Back to Home
+          </button>
+
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          ) : newsData ? (
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <Image 
+                src={newsData.imageUrl || '/placeholder.jpg'} 
+                alt={newsData.title}
+                width={800}
+                height={400}
+                className="w-full h-auto rounded-lg"
+              />
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-500">{newsData.source}</span>
+                    <span className="text-sm text-gray-400">•</span>
+                    <span className="text-sm text-gray-500">{new Date(newsData.pubDate).toLocaleDateString()}</span>
+                  </div>
+                  <span className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-full">
+                    {newsData.category}
+                  </span>
+                </div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-4">{newsData.title}</h1>
+                
+                {/* Full Content Section */}
+                <div className="mt-6 prose prose-lg max-w-none">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-4">Full Article</h2>
+                  <div className="text-gray-900 space-y-4">
+                    {newsData.content?.split('\n').map((paragraph: string, index: number) => (
+                      <p key={index} className="mb-4 text-gray-700">
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Summary Section */}
+                <div className="mt-8">
+                  <h2 className="text-2xl font-semibold text-gray-900 mb-4">AI Summary</h2>
+                  <p className="text-gray-700 leading-relaxed">{newsData.summary}</p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mt-8 flex flex-wrap gap-4">
+                  <button
+                    onClick={handleFactCheck}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    Fact Check
+                  </button>
+                  <div className="flex items-center space-x-4">
+                    <input
+                      type="range"
+                      min="50"
+                      max="500"
+                      step="50"
+                      value={summaryLength}
+                      onChange={(e) => setSummaryLength(Number(e.target.value))}
+                      className="w-48"
+                    />
+                    <button
+                      onClick={handleCustomSummary}
+                      disabled={isSummarizing}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      {isSummarizing ? 'Generating...' : 'Generate Custom Summary'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Fact Check Result */}
+                {factCheck && (
+                  <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Fact Check Report</h3>
+                    <div className="text-gray-700 whitespace-pre-line">{factCheck}</div>
+                  </div>
+                )}
+
+                {/* Custom Summary Result */}
+                {customSummary && (
+                  <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Custom Summary</h3>
+                    <p className="text-gray-700">{customSummary}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
