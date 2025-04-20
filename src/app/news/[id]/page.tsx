@@ -6,87 +6,71 @@ import Image from 'next/image';
 import { NewsItem } from '@/app/types';
 import { use } from 'react';
 
-export default function NewsDetail({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const [newsItem, setNewsItem] = useState<NewsItem | null>(null);
+export default function NewsDetail() {
+  const [newsData, setNewsData] = useState<NewsItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [factCheck, setFactCheck] = useState<string | null>(null);
   const [sources, setSources] = useState<string[]>([]);
   const [isLoadingFactCheck, setIsLoadingFactCheck] = useState(false);
-  const router = useRouter();
   const [summaryLength, setSummaryLength] = useState<number>(200);
+  const router = useRouter();
   const [customSummary, setCustomSummary] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
 
   useEffect(() => {
     const fetchNewsItem = async () => {
-      if (!resolvedParams.id) {
+      if (!newsData?.id) {
         setError('News item ID is required');
         setLoading(false);
         return;
       }
 
       try {
-        // First fetch all news items to ensure we have them
-        const newsResponse = await fetch('/api/rss');
-        if (!newsResponse.ok) {
-          throw new Error('Failed to fetch news items');
-        }
-        const newsData = await newsResponse.json();
+        setLoading(true);
+        setError(null);
 
         // Decode the ID from the URL
-        const decodedId = decodeURIComponent(resolvedParams.id);
+        const decodedId = decodeURIComponent(newsData.id);
         console.log('Fetching news item with ID:', decodedId);
 
-        // Then fetch the specific news item
-        const response = await fetch(`/api/rss`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            id: decodedId
-          }),
-        });
-
+        const response = await fetch(`/api/rss?id=${encodeURIComponent(decodedId)}`);
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch news item');
+          throw new Error('Failed to fetch news item');
         }
 
         const data = await response.json();
         if (!data.id) {
           throw new Error('News item ID not found in response');
         }
-        setNewsItem(data);
+        setNewsData(data);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch news');
-        setNewsItem(null);
+        setNewsData(null);
       } finally {
         setLoading(false);
       }
     };
 
     fetchNewsItem();
-  }, [resolvedParams.id]);
+  }, [newsData?.id]);
 
   const handleFactCheck = async () => {
-    if (!newsItem?.id) {
+    if (!newsData?.id) {
       setError('News item ID is required for fact checking');
       return;
     }
 
     try {
-      console.log('Fact checking news item with ID:', newsItem.id);
+      console.log('Fact checking news item with ID:', newsData.id);
       const response = await fetch(`/api/rss`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          id: newsItem.id,
+          id: newsData.id,
           action: 'fact-check'
         }),
       });
@@ -106,21 +90,21 @@ export default function NewsDetail({ params }: { params: Promise<{ id: string }>
   };
 
   const handleCustomSummary = async () => {
-    if (!newsItem?.id) {
+    if (!newsData?.id) {
       setError('News item ID is required for summarization');
       return;
     }
 
     setIsSummarizing(true);
     try {
-      console.log('Generating custom summary for news item with ID:', newsItem.id);
+      console.log('Generating custom summary for news item with ID:', newsData.id);
       const response = await fetch(`/api/rss`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          id: newsItem.id,
+          id: newsData.id,
           action: 'custom-summary',
           length: summaryLength
         }),
@@ -150,7 +134,7 @@ export default function NewsDetail({ params }: { params: Promise<{ id: string }>
     );
   }
 
-  if (error || !newsItem) {
+  if (error || !newsData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-red-500">{error || 'News item not found'}</div>
@@ -191,39 +175,33 @@ export default function NewsDetail({ params }: { params: Promise<{ id: string }>
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             {error}
           </div>
-        ) : newsItem ? (
+        ) : newsData ? (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            {newsItem.imageUrl && (
-              <div className="relative h-64 w-full">
-                <img
-                  src={newsItem.imageUrl}
-                  alt={newsItem.title}
-                  className="object-cover w-full h-full"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
+            <Image 
+              src={newsData.imageUrl || '/placeholder.jpg'} 
+              alt={newsData.title}
+              width={800}
+              height={400}
+              className="w-full h-auto rounded-lg"
+            />
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-gray-500">{newsItem.source}</span>
+                  <span className="text-sm font-medium text-gray-500">{newsData.source}</span>
                   <span className="text-sm text-gray-400">•</span>
-                  <span className="text-sm text-gray-500">{new Date(newsItem.pubDate).toLocaleDateString()}</span>
+                  <span className="text-sm text-gray-500">{new Date(newsData.pubDate).toLocaleDateString()}</span>
                 </div>
                 <span className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-full">
-                  {newsItem.category}
+                  {newsData.category}
                 </span>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{newsItem.title}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">{newsData.title}</h1>
               
               {/* Full Content Section */}
               <div className="mt-6 prose prose-lg max-w-none">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">Full Article</h2>
                 <div className="text-gray-900 space-y-4">
-                  {newsItem.content?.split('\n').map((paragraph: string, index: number) => (
+                  {newsData.content?.split('\n').map((paragraph: string, index: number) => (
                     <p key={index} className="mb-4 text-gray-700">
                       {paragraph}
                     </p>
@@ -234,7 +212,7 @@ export default function NewsDetail({ params }: { params: Promise<{ id: string }>
               {/* Summary Section */}
               <div className="mt-8">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">AI Summary</h2>
-                <p className="text-gray-700 leading-relaxed">{newsItem.summary}</p>
+                <p className="text-gray-700 leading-relaxed">{newsData.summary}</p>
               </div>
 
               {/* Action Buttons */}

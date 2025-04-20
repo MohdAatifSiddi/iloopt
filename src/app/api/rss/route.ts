@@ -132,6 +132,11 @@ async function summarizeContent(content: string, length: number = 200): Promise<
   throw new Error('Max retries reached');
 }
 
+interface SearXNGResult {
+  content: string;
+  engine: string;
+}
+
 async function searchRelatedNews(query: string): Promise<{ content: string[]; sources: string[] }> {
   try {
     const response = await fetch(
@@ -146,8 +151,8 @@ async function searchRelatedNews(query: string): Promise<{ content: string[]; so
     const results = data.results || [];
     
     return {
-      content: results.map((result: any) => result.content).slice(0, 5),
-      sources: results.map((result: any) => result.engine).slice(0, 5)
+      content: results.map((result: SearXNGResult) => result.content).slice(0, 5),
+      sources: results.map((result: SearXNGResult) => result.engine).slice(0, 5)
     };
   } catch (error) {
     console.error('Error searching related news:', error);
