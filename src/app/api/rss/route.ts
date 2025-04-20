@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import Parser from 'rss-parser';
 
-const API_KEY = "5BjV2gm9Ry0tVt9ID7gBynw8Ee6Ewm56zALIirWB36AV0BzXIJ9rJQQJ99BDACHYHv6XJ3w3AAAAACOGVYIm";
-const API_URL = "https://mekot-m98ufofa-eastus2.openai.azure.com";
-const MODEL_NAME = "gpt-4.5-preview";
-const SEARXNG_URL = "http://20.65.200.13";
+const API_KEY = "5lxZhUTNPPZGZZOOdvpwQyrjkKWwhFHjlWnw0F3htkGhAlKN2F38JQQJ99BDACHYHv6XJ3w3AAAAACOG9zzz";
+const API_URL = "https://mekot-m9pcilcz-eastus2.openai.azure.com";
+const MODEL_NAME = "o4-mini";
+const SEARXNG_URL = "http://40.90.227.173:8888";
 
 // Define custom types for RSS feed items
 type CustomFeed = {
@@ -80,7 +80,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 async function summarizeContent(content: string, length: number = 200): Promise<string> {
   const maxRetries = 3;
-  const timeout = 30000; // 30 seconds timeout
+  const timeout = 60000; // Increased to 60 seconds timeout
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -89,11 +89,11 @@ async function summarizeContent(content: string, length: number = 200): Promise<
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(`${API_URL}/openai/deployments/${MODEL_NAME}/chat/completions?api-version=2023-05-15`, {
+      const response = await fetch(`${API_URL}/openai/deployments/${MODEL_NAME}/chat/completions?api-version=2024-12-01-preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': API_KEY,
+          'api-key': API_KEY
         },
         body: JSON.stringify({
           messages: [
@@ -106,8 +106,7 @@ async function summarizeContent(content: string, length: number = 200): Promise<
               content: `Please summarize this news article in about ${length} words: ${content}`
             }
           ],
-          temperature: 0.7,
-          max_tokens: Math.min(length * 2, 1000)
+          max_completion_tokens: Math.min(length * 2, 1000)
         }),
         signal: controller.signal
       });
@@ -158,7 +157,7 @@ async function searchRelatedNews(query: string): Promise<{ content: string[]; so
 
 async function factCheckContent(title: string, content: string): Promise<string> {
   const maxRetries = 3;
-  const timeout = 30000; // 30 seconds timeout
+  const timeout = 60000; // Increased to 60 seconds timeout
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -167,11 +166,11 @@ async function factCheckContent(title: string, content: string): Promise<string>
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(`${API_URL}/openai/deployments/${MODEL_NAME}/chat/completions?api-version=2023-05-15`, {
+      const response = await fetch(`${API_URL}/openai/deployments/${MODEL_NAME}/chat/completions?api-version=2024-12-01-preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': API_KEY,
+          'api-key': API_KEY
         },
         body: JSON.stringify({
           messages: [
@@ -184,8 +183,7 @@ async function factCheckContent(title: string, content: string): Promise<string>
               content: `Please fact-check this news article:\nTitle: ${title}\nContent: ${content}`
             }
           ],
-          temperature: 0.7,
-          max_tokens: 1000
+          max_completion_tokens: 1000
         }),
         signal: controller.signal
       });

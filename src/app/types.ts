@@ -4,10 +4,13 @@ export interface NewsItem {
   link: string;
   description: string;
   pubDate: string;
-  image?: string;
   source: string;
-  summary?: string;
+  category: string;
+  imageUrl?: string;
+  fullContent?: string;
   content?: string;
+  summary?: string;
+  factCheck?: string;
 }
 
 export interface FeedItem extends NewsItem {

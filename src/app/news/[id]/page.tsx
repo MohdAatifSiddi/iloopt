@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { NewsItem } from '@/app/types';
+import { use } from 'react';
 
-export default function NewsDetail({ params }: { params: { id: string } }) {
+export default function NewsDetail({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
   const [newsItem, setNewsItem] = useState<NewsItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +21,7 @@ export default function NewsDetail({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     const fetchNewsItem = async () => {
-      if (!params.id) {
+      if (!resolvedParams.id) {
         setError('News item ID is required');
         setLoading(false);
         return;
@@ -34,7 +36,7 @@ export default function NewsDetail({ params }: { params: { id: string } }) {
         const newsData = await newsResponse.json();
 
         // Decode the ID from the URL
-        const decodedId = decodeURIComponent(params.id as string);
+        const decodedId = decodeURIComponent(resolvedParams.id);
         console.log('Fetching news item with ID:', decodedId);
 
         // Then fetch the specific news item
@@ -68,7 +70,7 @@ export default function NewsDetail({ params }: { params: { id: string } }) {
     };
 
     fetchNewsItem();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   const handleFactCheck = async () => {
     if (!newsItem?.id) {
